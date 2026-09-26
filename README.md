@@ -1,16 +1,44 @@
-# React + Vite
+# Life Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A single web app for tracking personal finances, daily habits, and household chores, built with AI coding tools for FAU's ED2 Hootcamp assignment.
 
-Currently, two official plugins are available:
+## Live app
+[https://YOUR-SITE.netlify.app](https://YOUR-SITE.netlify.app) — TODO: replace once deployed on Netlify (see Deployment below)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## What it does
+- Sign up and log in with email and password
+- Finance: log income and expenses, see a monthly summary and safe-to-spend figure, set per-category budgets
+- Habits: track daily habits, streaks, and best-streak records
+- House: manage chores by zone with due-date flags and a shopping list
 
-## React Compiler
+## Tech stack
+- React (Vite) and Tailwind CSS for the frontend
+- Supabase for the database and authentication (Postgres with row level security)
+- Netlify for hosting and deployment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Setup instructions
+1. Clone this repo
+2. Run `npm install`
+3. Create a Supabase project, then copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from your project's API settings
+4. Run the SQL in `schema.sql` against your Supabase project (SQL editor, or `psql` against your connection string)
+5. Run `npm run dev`
 
-## Expanding the Oxlint configuration
+## Deployment
+1. Push this repo to GitHub
+2. In Netlify, "Add new site" → "Import an existing project" from this repo
+3. Build command `npm run build`, publish directory `dist` (see `netlify.toml`)
+4. In Site settings → Environment variables, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+5. Deploy, then open the live URL in a private window and walk through signup, login, and one CRUD action in each module
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Demo video
+[link to unlisted YouTube video] — TODO: record per `docs/roadmap.md`'s demo script and paste the link here
+
+## Project structure
+- `src/pages` — Login, Signup, Dashboard, Finance, Habits, House
+- `src/context` — auth session state
+- `src/lib/supabase.js` — Supabase client setup
+- `src/components/ui` — shared Button, Input, Card, EmptyState components
+- `src/components/finance`, `src/components/habits`, `src/components/house` — module-specific components
+- `docs/roadmap.md` — the full build roadmap this app was built from
+- `docs/research` — the research behind each module's feature choices
+- `schema.sql` — database schema and row level security policies
