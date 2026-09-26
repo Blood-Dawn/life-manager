@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import Card from '../components/ui/Card'
+import ErrorBanner from '../components/ui/ErrorBanner'
 import { monthKey, formatCurrency } from '../lib/dateUtils'
 import { todayISO, currentStreak } from '../lib/habitUtils'
 import { dueStatus } from '../lib/choreUtils'
@@ -17,53 +18,63 @@ const statusStyles = {
 export default function Dashboard() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [actionError, setActionError] = useState(null)
   const [net, setNet] = useState(0)
   const [habits, setHabits] = useState([])
   const [logsByHabit, setLogsByHabit] = useState({})
   const [chores, setChores] = useState([])
 
-  useEffect(() => {
-    let active = true
-    async function load() {
-      const month = monthKey(new Date())
-      const [{ data: txns }, { data: habitData }, { data: logData }, { data: choreData }] = await Promise.all([
-        supabase.from('transactions').select('amount, type, occurred_on'),
-        supabase.from('habits').select('*').eq('active', true).order('created_at'),
-        supabase.from('habit_logs').select('habit_id, log_date'),
-        supabase.from('chores').select('*').eq('is_done', false).order('due_date', { ascending: true, nullsFirst: false }),
-      ])
-      if (!active) return
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    const month = monthKey(new Date())
+    const [txnsRes, habitsRes, logsRes, choresRes] = await Promise.all([
+      supabase.from('transactions').select('amount, type, occurred_on'),
+      supabase.from('habits').select('*').eq('active', true).order('created_at'),
+      supabase.from('habit_logs').select('habit_id, log_date'),
+      supabase.from('chores').select('*').eq('is_done', false).order('due_date', { ascending: true, nullsFirst: false }),
+    ])
 
-      const monthTxns = (txns ?? []).filter((t) => t.occurred_on.slice(0, 7) === month)
-      const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
-      const expenses = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
-      setNet(income - expenses)
-
-      setHabits(habitData ?? [])
-      const grouped = {}
-      for (const log of logData ?? []) {
-        grouped[log.habit_id] = grouped[log.habit_id] || []
-        grouped[log.habit_id].push(log.log_date)
-      }
-      setLogsByHabit(grouped)
-
-      setChores((choreData ?? []).slice(0, 5))
+    const firstError = txnsRes.error || habitsRes.error || logsRes.error || choresRes.error
+    if (firstError) {
+      setLoadError(firstError.message)
       setLoading(false)
+      return
     }
-    load()
-    return () => {
-      active = false
+
+    const monthTxns = (txnsRes.data ?? []).filter((t) => t.occurred_on.slice(0, 7) === month)
+    const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
+    const expenses = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
+    setNet(income - expenses)
+
+    setHabits(habitsRes.data ?? [])
+    const grouped = {}
+    for (const log of logsRes.data ?? []) {
+      grouped[log.habit_id] = grouped[log.habit_id] || []
+      grouped[log.habit_id].push(log.log_date)
     }
+    setLogsByHabit(grouped)
+
+    setChores((choresRes.data ?? []).slice(0, 5))
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const today = todayISO()
 
   const handleToggleHabit = async (habit, checked) => {
+    setActionError(null)
     if (checked) {
       const { error } = await supabase
         .from('habit_logs')
         .insert({ habit_id: habit.id, user_id: user.id, log_date: today })
-      if (!error) {
+      if (error) {
+        setActionError(error.message)
+      } else {
         setLogsByHabit((prev) => ({ ...prev, [habit.id]: [...(prev[habit.id] || []), today] }))
       }
     } else {
@@ -72,7 +83,9 @@ export default function Dashboard() {
         .delete()
         .eq('habit_id', habit.id)
         .eq('log_date', today)
-      if (!error) {
+      if (error) {
+        setActionError(error.message)
+      } else {
         setLogsByHabit((prev) => ({
           ...prev,
           [habit.id]: (prev[habit.id] || []).filter((d) => d !== today),
@@ -85,9 +98,20 @@ export default function Dashboard() {
     return <p className="text-sm text-text-muted">Loading dashboard…</p>
   }
 
+  if (loadError) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <ErrorBanner message={`Couldn't load your dashboard: ${loadError}`} onRetry={load} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Dashboard</h1>
+
+      <ErrorBanner message={actionError} />
 
       <Card>
         <p className="text-xs text-text-muted">This month's balance</p>

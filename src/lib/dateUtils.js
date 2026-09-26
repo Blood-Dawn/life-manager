@@ -1,7 +1,18 @@
 export const CATEGORIES = ['Food', 'Rent', 'Utilities', 'Transport', 'Entertainment', 'Income', 'Other']
 
+/** Format a Date using its local year/month/day, avoiding the UTC shift toISOString() introduces. */
+export function localISODate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+/** Parse a "YYYY-MM-DD" string as a local-midnight Date, avoiding new Date(str)'s UTC parsing. */
+export function parseLocalDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return localISODate(new Date())
 }
 
 export function monthKey(date) {

@@ -1,22 +1,26 @@
-function toDateOnly(d) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+import { localISODate } from './dateUtils'
+
+function startOfToday() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
-function daysAgoISO(n) {
-  const d = toDateOnly(new Date())
+function daysAgoDate(n) {
+  const d = startOfToday()
   d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
+  return d
 }
 
 export function todayISO() {
-  return daysAgoISO(0)
+  return localISODate(startOfToday())
 }
 
 export function yesterdayISO() {
-  return daysAgoISO(1)
+  return localISODate(daysAgoDate(1))
 }
 
-/** Consecutive-day streak ending today or yesterday (one day of tail slack). */
+/** Consecutive-day streak ending today or yesterday, tolerating a single missed day. */
 export function currentStreak(logDates) {
   const dates = new Set(logDates)
   const today = todayISO()
@@ -24,16 +28,23 @@ export function currentStreak(logDates) {
 
   let cursor
   if (dates.has(today)) {
-    cursor = new Date(today)
+    cursor = startOfToday()
   } else if (dates.has(yesterday)) {
-    cursor = new Date(yesterday)
+    cursor = daysAgoDate(1)
   } else {
     return 0
   }
 
   let streak = 0
-  while (dates.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1
+  let usedGrace = false
+  while (true) {
+    if (dates.has(localISODate(cursor))) {
+      streak += 1
+    } else if (usedGrace) {
+      break
+    } else {
+      usedGrace = true
+    }
     cursor.setDate(cursor.getDate() - 1)
   }
   return streak
@@ -58,7 +69,7 @@ export function bestStreak(logDates) {
 /** True when yesterday was missed but the day before had a log and today hasn't happened yet. */
 export function shouldNudge(logDates) {
   const dates = new Set(logDates)
-  return !dates.has(todayISO()) && !dates.has(yesterdayISO()) && dates.has(daysAgoISO(2))
+  return !dates.has(todayISO()) && !dates.has(yesterdayISO()) && dates.has(localISODate(daysAgoDate(2)))
 }
 
 /** Last n days (oldest first) as { date, logged } for a heatmap strip. */
@@ -66,7 +77,7 @@ export function lastNDays(logDates, n = 7) {
   const dates = new Set(logDates)
   const days = []
   for (let i = n - 1; i >= 0; i--) {
-    const date = daysAgoISO(i)
+    const date = localISODate(daysAgoDate(i))
     days.push({ date, logged: dates.has(date) })
   }
   return days
