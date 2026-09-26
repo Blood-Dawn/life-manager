@@ -37,7 +37,7 @@ export default function HabitRow({ habit, logDates, checkedToday, onToggle, onEd
             <Pencil size={16} />
           </button>
           <button
-            onClick={() => onDelete(habit)}
+            onClick={() => window.confirm(`Delete "${habit.name}" and all its check-ins?`) && onDelete(habit)}
             className="rounded-lg p-1.5 text-text-muted hover:bg-expense/10 hover:text-expense"
             aria-label="Delete habit"
           >

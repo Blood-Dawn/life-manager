@@ -8,8 +8,14 @@ import Dashboard from './pages/Dashboard'
 import Finance from './pages/Finance'
 import Habits from './pages/Habits'
 import House from './pages/House'
+import SetupNotice from './pages/SetupNotice'
+import { isSupabaseConfigured } from './lib/supabase'
 
 function App() {
+  if (!isSupabaseConfigured) {
+    return <SetupNotice />
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>

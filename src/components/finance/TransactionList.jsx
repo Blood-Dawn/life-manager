@@ -36,7 +36,7 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
               <Pencil size={16} />
             </button>
             <button
-              onClick={() => onDelete(t)}
+              onClick={() => window.confirm('Delete this transaction?') && onDelete(t)}
               className="rounded-lg p-1.5 text-text-muted hover:bg-expense/10 hover:text-expense"
               aria-label="Delete transaction"
             >

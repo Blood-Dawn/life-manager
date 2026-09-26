@@ -49,7 +49,7 @@ export default function ChoreRow({ chore, onToggleDone, onSnooze, onEdit, onDele
           <Pencil size={16} />
         </button>
         <button
-          onClick={() => onDelete(chore)}
+          onClick={() => window.confirm(`Delete "${chore.title}"?`) && onDelete(chore)}
           className="rounded-lg p-1.5 text-text-muted hover:bg-expense/10 hover:text-expense"
           aria-label="Delete chore"
         >

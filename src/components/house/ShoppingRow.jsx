@@ -24,7 +24,7 @@ export default function ShoppingRow({ item, onTogglePurchased, onEdit, onDelete 
           <Pencil size={16} />
         </button>
         <button
-          onClick={() => onDelete(item)}
+          onClick={() => window.confirm(`Delete "${item.item_name}"?`) && onDelete(item)}
           className="rounded-lg p-1.5 text-text-muted hover:bg-expense/10 hover:text-expense"
           aria-label="Delete item"
         >
