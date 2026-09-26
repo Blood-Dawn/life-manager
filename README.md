@@ -3,7 +3,7 @@
 A single web app for tracking personal finances, daily habits, and household chores, built with AI coding tools for FAU's ED2 Hootcamp assignment.
 
 ## Live app
-[https://YOUR-SITE.netlify.app](https://YOUR-SITE.netlify.app) — TODO: replace once deployed on Netlify (see Deployment below)
+[https://life-manager-bloodawn.netlify.app](https://life-manager-bloodawn.netlify.app)
 
 ## What it does
 - Sign up and log in with email and password
@@ -31,7 +31,7 @@ A single web app for tracking personal finances, daily habits, and household cho
 5. Deploy, then open the live URL in a private window and walk through signup, login, and one CRUD action in each module
 
 ## Demo video
-[link to unlisted YouTube video] — TODO: record per `docs/roadmap.md`'s demo script and paste the link here
+[Watch the demo](https://www.loom.com/share/da29cbf3c0444418a97864e4a9fe4f47)
 
 ## Project structure
 - `src/pages` — Login, Signup, Dashboard, Finance, Habits, House
