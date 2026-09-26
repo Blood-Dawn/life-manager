@@ -22,7 +22,11 @@ export default function Signup() {
     event.preventDefault()
     setError(null)
     setSubmitting(true)
-    const { error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    })
     setSubmitting(false)
     if (signUpError) {
       setError(signUpError.message)
