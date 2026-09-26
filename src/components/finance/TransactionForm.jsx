@@ -26,7 +26,7 @@ export default function TransactionForm({ initial, transactions, onSubmit, onCan
     }
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const amountNumber = Number(form.amount)
     if (!form.amount || Number.isNaN(amountNumber) || amountNumber <= 0) {
@@ -34,7 +34,8 @@ export default function TransactionForm({ initial, transactions, onSubmit, onCan
       return
     }
     setError(null)
-    onSubmit({ ...form, amount: amountNumber })
+    const ok = await onSubmit({ ...form, amount: amountNumber })
+    if (ok && !isEditing) setForm(emptyForm)
   }
 
   return (

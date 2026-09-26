@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Card from '../ui/Card'
 import Button from '../ui/Button'
+import ErrorBanner from '../ui/ErrorBanner'
 import { Select } from '../ui/Input'
 import Input from '../ui/Input'
 import { CATEGORIES, formatCurrency } from '../../lib/dateUtils'
@@ -13,23 +14,25 @@ export default function BudgetPanel({ transactions }) {
   const [category, setCategory] = useState(CATEGORIES[0])
   const [limit, setLimit] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [formError, setFormError] = useState(null)
+  const [listError, setListError] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    const { data, error } = await supabase.from('budgets').select('*').order('category')
+    if (error) {
+      setLoadError(error.message)
+    } else {
+      setBudgets(data ?? [])
+    }
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    let active = true
-    supabase
-      .from('budgets')
-      .select('*')
-      .order('category')
-      .then(({ data }) => {
-        if (active) {
-          setBudgets(data ?? [])
-          setLoading(false)
-        }
-      })
-    return () => {
-      active = false
-    }
-  }, [])
+    load()
+  }, [load])
 
   const spentByCategory = transactions
     .filter((t) => t.type === 'expense')
@@ -40,6 +43,7 @@ export default function BudgetPanel({ transactions }) {
 
   const handleSetLimit = async (event) => {
     event.preventDefault()
+    setFormError(null)
     const monthlyLimit = Number(limit)
     if (!monthlyLimit || monthlyLimit <= 0) return
 
@@ -52,22 +56,42 @@ export default function BudgetPanel({ transactions }) {
       .select()
       .single()
 
-    if (!error && data) {
-      setBudgets((prev) => [...prev.filter((b) => b.category !== category), data].sort((a, b) => a.category.localeCompare(b.category)))
-      setLimit('')
+    if (error) {
+      setFormError(error.message)
+      return
     }
+    setBudgets((prev) =>
+      [...prev.filter((b) => b.category !== category), data].sort((a, b) => a.category.localeCompare(b.category)),
+    )
+    setLimit('')
   }
 
-  const handleDelete = async (id) => {
-    const { error } = await supabase.from('budgets').delete().eq('id', id)
-    if (!error) setBudgets((prev) => prev.filter((b) => b.id !== id))
+  const handleDelete = async (budget) => {
+    if (!window.confirm(`Remove the budget for ${budget.category}?`)) return
+    setListError(null)
+    const { error } = await supabase.from('budgets').delete().eq('id', budget.id)
+    if (error) {
+      setListError(error.message)
+      return
+    }
+    setBudgets((prev) => prev.filter((b) => b.id !== budget.id))
   }
 
   if (loading) return null
 
+  if (loadError) {
+    return (
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold">Budgets</h2>
+        <ErrorBanner message={`Couldn't load your budgets: ${loadError}`} onRetry={load} />
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <h2 className="mb-3 text-sm font-semibold">Budgets</h2>
+      <ErrorBanner message={formError} />
       <form onSubmit={handleSetLimit} className="mb-4 flex flex-wrap items-end gap-3">
         <Select label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
@@ -86,6 +110,8 @@ export default function BudgetPanel({ transactions }) {
         />
         <Button type="submit">Set limit</Button>
       </form>
+
+      <ErrorBanner message={listError} />
 
       {budgets.length === 0 ? (
         <p className="text-sm text-text-muted">No budgets set yet.</p>
@@ -110,7 +136,7 @@ export default function BudgetPanel({ transactions }) {
                   />
                 </div>
                 <button
-                  onClick={() => handleDelete(b.id)}
+                  onClick={() => handleDelete(b)}
                   className="mt-1 text-xs text-text-muted hover:text-expense"
                 >
                   Remove

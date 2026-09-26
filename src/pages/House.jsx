@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Home as HomeIcon, ShoppingCart } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import ErrorBanner from '../components/ui/ErrorBanner'
 import Button from '../components/ui/Button'
 import ChoreForm from '../components/house/ChoreForm'
 import ChoreRow from '../components/house/ChoreRow'
@@ -18,46 +19,56 @@ export default function House() {
 
   const [chores, setChores] = useState([])
   const [choresLoading, setChoresLoading] = useState(true)
+  const [choresLoadError, setChoresLoadError] = useState(null)
+  const [choreFormError, setChoreFormError] = useState(null)
+  const [choreListError, setChoreListError] = useState(null)
   const [editingChore, setEditingChore] = useState(null)
   const [zoneFilter, setZoneFilter] = useState(null)
 
   const [items, setItems] = useState([])
   const [itemsLoading, setItemsLoading] = useState(true)
+  const [itemsLoadError, setItemsLoadError] = useState(null)
+  const [itemFormError, setItemFormError] = useState(null)
+  const [itemListError, setItemListError] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
 
-  useEffect(() => {
-    let active = true
-    supabase
+  const loadChores = useCallback(async () => {
+    setChoresLoading(true)
+    setChoresLoadError(null)
+    const { data, error } = await supabase
       .from('chores')
       .select('*')
       .order('due_date', { ascending: true, nullsFirst: false })
-      .then(({ data }) => {
-        if (active) {
-          setChores(data ?? [])
-          setChoresLoading(false)
-        }
-      })
-    return () => {
-      active = false
+    if (error) {
+      setChoresLoadError(error.message)
+    } else {
+      setChores(data ?? [])
     }
+    setChoresLoading(false)
   }, [])
 
-  useEffect(() => {
-    let active = true
-    supabase
+  const loadItems = useCallback(async () => {
+    setItemsLoading(true)
+    setItemsLoadError(null)
+    const { data, error } = await supabase
       .from('shopping_items')
       .select('*')
       .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (active) {
-          setItems(data ?? [])
-          setItemsLoading(false)
-        }
-      })
-    return () => {
-      active = false
+    if (error) {
+      setItemsLoadError(error.message)
+    } else {
+      setItems(data ?? [])
     }
+    setItemsLoading(false)
   }, [])
+
+  useEffect(() => {
+    loadChores()
+  }, [loadChores])
+
+  useEffect(() => {
+    loadItems()
+  }, [loadItems])
 
   const visibleChores = useMemo(
     () => (zoneFilter ? chores.filter((c) => c.zone === zoneFilter) : chores),
@@ -65,43 +76,64 @@ export default function House() {
   )
 
   const handleAddChore = async (values) => {
+    setChoreFormError(null)
     const { data, error } = await supabase
       .from('chores')
       .insert({ ...values, user_id: user.id })
       .select()
       .single()
-    if (!error && data) setChores((prev) => [...prev, data])
+    if (error) {
+      setChoreFormError(error.message)
+      return false
+    }
+    setChores((prev) => [...prev, data])
+    return true
   }
 
   const handleUpdateChore = async (values) => {
+    setChoreFormError(null)
     const { data, error } = await supabase
       .from('chores')
       .update(values)
       .eq('id', editingChore.id)
       .select()
       .single()
-    if (!error && data) {
-      setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
-      setEditingChore(null)
+    if (error) {
+      setChoreFormError(error.message)
+      return false
     }
+    setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
+    setEditingChore(null)
+    return true
   }
 
   const handleDeleteChore = async (chore) => {
+    setChoreListError(null)
     const { error } = await supabase.from('chores').delete().eq('id', chore.id)
-    if (!error) setChores((prev) => prev.filter((c) => c.id !== chore.id))
+    if (error) {
+      setChoreListError(error.message)
+      return
+    }
+    setChores((prev) => prev.filter((c) => c.id !== chore.id))
   }
 
   const handleToggleDone = async (chore, isDone) => {
+    setChoreListError(null)
     const { data, error } = await supabase
       .from('chores')
       .update({ is_done: isDone })
       .eq('id', chore.id)
       .select()
       .single()
-    if (!error && data) setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
+    if (error) {
+      setChoreListError(error.message)
+      return
+    }
+    setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
   }
 
   const handleSnooze = async (chore) => {
+    setChoreListError(null)
     const nextDue = snoozeDueDate(chore.due_date, chore.frequency)
     const { data, error } = await supabase
       .from('chores')
@@ -109,51 +141,80 @@ export default function House() {
       .eq('id', chore.id)
       .select()
       .single()
-    if (!error && data) setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
+    if (error) {
+      setChoreListError(error.message)
+      return
+    }
+    setChores((prev) => prev.map((c) => (c.id === data.id ? data : c)))
   }
 
   const handleAddItem = async (values) => {
+    setItemFormError(null)
     const { data, error } = await supabase
       .from('shopping_items')
       .insert({ ...values, user_id: user.id })
       .select()
       .single()
-    if (!error && data) setItems((prev) => [data, ...prev])
+    if (error) {
+      setItemFormError(error.message)
+      return false
+    }
+    setItems((prev) => [data, ...prev])
+    return true
   }
 
   const handleUpdateItem = async (values) => {
+    setItemFormError(null)
     const { data, error } = await supabase
       .from('shopping_items')
       .update(values)
       .eq('id', editingItem.id)
       .select()
       .single()
-    if (!error && data) {
-      setItems((prev) => prev.map((i) => (i.id === data.id ? data : i)))
-      setEditingItem(null)
+    if (error) {
+      setItemFormError(error.message)
+      return false
     }
+    setItems((prev) => prev.map((i) => (i.id === data.id ? data : i)))
+    setEditingItem(null)
+    return true
   }
 
   const handleDeleteItem = async (item) => {
+    setItemListError(null)
     const { error } = await supabase.from('shopping_items').delete().eq('id', item.id)
-    if (!error) setItems((prev) => prev.filter((i) => i.id !== item.id))
+    if (error) {
+      setItemListError(error.message)
+      return
+    }
+    setItems((prev) => prev.filter((i) => i.id !== item.id))
   }
 
   const handleTogglePurchased = async (item, isPurchased) => {
+    setItemListError(null)
     const { data, error } = await supabase
       .from('shopping_items')
       .update({ is_purchased: isPurchased })
       .eq('id', item.id)
       .select()
       .single()
-    if (!error && data) setItems((prev) => prev.map((i) => (i.id === data.id ? data : i)))
+    if (error) {
+      setItemListError(error.message)
+      return
+    }
+    setItems((prev) => prev.map((i) => (i.id === data.id ? data : i)))
   }
 
   const handleClearPurchased = async () => {
+    setItemListError(null)
     const purchasedIds = items.filter((i) => i.is_purchased).map((i) => i.id)
     if (purchasedIds.length === 0) return
     const { error } = await supabase.from('shopping_items').delete().in('id', purchasedIds)
-    if (!error) setItems((prev) => prev.filter((i) => !i.is_purchased))
+    if (error) {
+      setItemListError(error.message)
+      return
+    }
+    setItems((prev) => prev.filter((i) => !i.is_purchased))
   }
 
   return (
@@ -183,18 +244,26 @@ export default function House() {
         <>
           <Card>
             <h2 className="mb-3 text-sm font-semibold">{editingChore ? 'Edit chore' : 'Add chore'}</h2>
+            <ErrorBanner message={choreFormError} />
             <ChoreForm
               key={editingChore?.id ?? 'new'}
               initial={editingChore}
               onSubmit={editingChore ? handleUpdateChore : handleAddChore}
-              onCancel={() => setEditingChore(null)}
+              onCancel={() => {
+                setEditingChore(null)
+                setChoreFormError(null)
+              }}
             />
           </Card>
 
           <ZoneFilter value={zoneFilter} onChange={setZoneFilter} />
 
+          <ErrorBanner message={choreListError} />
+
           {choresLoading ? (
             <p className="text-sm text-text-muted">Loading chores…</p>
+          ) : choresLoadError ? (
+            <ErrorBanner message={`Couldn't load your chores: ${choresLoadError}`} onRetry={loadChores} />
           ) : visibleChores.length === 0 ? (
             <EmptyState
               icon={HomeIcon}
@@ -220,11 +289,15 @@ export default function House() {
         <>
           <Card>
             <h2 className="mb-3 text-sm font-semibold">{editingItem ? 'Edit item' : 'Add item'}</h2>
+            <ErrorBanner message={itemFormError} />
             <ShoppingForm
               key={editingItem?.id ?? 'new'}
               initial={editingItem}
               onSubmit={editingItem ? handleUpdateItem : handleAddItem}
-              onCancel={() => setEditingItem(null)}
+              onCancel={() => {
+                setEditingItem(null)
+                setItemFormError(null)
+              }}
             />
           </Card>
 
@@ -234,8 +307,12 @@ export default function House() {
             </Button>
           </div>
 
+          <ErrorBanner message={itemListError} />
+
           {itemsLoading ? (
             <p className="text-sm text-text-muted">Loading shopping list…</p>
+          ) : itemsLoadError ? (
+            <ErrorBanner message={`Couldn't load your shopping list: ${itemsLoadError}`} onRetry={loadItems} />
           ) : items.length === 0 ? (
             <EmptyState
               icon={ShoppingCart}

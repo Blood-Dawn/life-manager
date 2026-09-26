@@ -8,11 +8,11 @@ export default function ShoppingForm({ initial, onSubmit, onCancel, submitting }
   const [form, setForm] = useState(initial ? { item_name: initial.item_name, quantity: initial.quantity ?? '' } : empty)
   const isEditing = Boolean(initial)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!form.item_name.trim()) return
-    onSubmit({ item_name: form.item_name.trim(), quantity: form.quantity.trim() || null })
-    if (!isEditing) setForm(empty)
+    const ok = await onSubmit({ item_name: form.item_name.trim(), quantity: form.quantity.trim() || null })
+    if (ok && !isEditing) setForm(empty)
   }
 
   return (

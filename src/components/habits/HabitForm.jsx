@@ -8,11 +8,11 @@ export default function HabitForm({ initial, onSubmit, onCancel, submitting }) {
   const [form, setForm] = useState(initial ? { name: initial.name, icon: initial.icon } : empty)
   const isEditing = Boolean(initial)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!form.name.trim()) return
-    onSubmit({ name: form.name.trim(), icon: form.icon.trim() || '✅' })
-    if (!isEditing) setForm(empty)
+    const ok = await onSubmit({ name: form.name.trim(), icon: form.icon.trim() || '✅' })
+    if (ok && !isEditing) setForm(empty)
   }
 
   return (

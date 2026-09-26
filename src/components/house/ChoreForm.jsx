@@ -13,11 +13,11 @@ export default function ChoreForm({ initial, onSubmit, onCancel, submitting }) {
   )
   const isEditing = Boolean(initial)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!form.title.trim()) return
-    onSubmit({ ...form, title: form.title.trim(), due_date: form.due_date || null })
-    if (!isEditing) setForm(empty)
+    const ok = await onSubmit({ ...form, title: form.title.trim(), due_date: form.due_date || null })
+    if (ok && !isEditing) setForm(empty)
   }
 
   return (
