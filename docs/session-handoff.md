@@ -7,7 +7,7 @@ Written 2026-09-26 morning, for whichever session picks this project back up. De
 - All 11 roadmap phases (0 through 9) are built, committed, and pushed to `claude/festive-ritchie-tbtvlu`.
 - PR: https://github.com/Blood-Dawn/life-manager/pull/1 — open, marked ready for review (not a draft), not yet merged.
 - `docs/roadmap.md` and `docs/research/` carry the full spec and the research behind each module's feature choices.
-- Sourcery (an automated review bot) left 6 real findings on the PR. 5 are fixed as of commit `3c25b8e`. One is still open — see below.
+- Two review bots (Sourcery, Codex) left findings on the PR — all real bugs, no nitpicks. All are fixed and replied to as of commit `9e963d9`: timezone bugs in date handling, habit streak grace-day logic, a lost post-login redirect, a monthly-snooze date drift, and — the last one — every add/edit form across Finance/Habits/House now waits for the mutation to actually succeed before clearing itself, and every page surfaces load/mutation errors via a retryable banner instead of swallowing them.
 
 ## Why this handoff exists
 
@@ -23,17 +23,9 @@ The user is adding three Supabase environment variables (`SUPABASE_URL`, `SUPABA
 2. For local smoke-testing only (never commit this), you can write a local `.env` from `SUPABASE_URL`/`SUPABASE_ANON_KEY` and run `npm run dev` to sign up a real test account and click through each module once. Delete or leave `.env` untracked when done — it's already gitignored.
 3. Re-subscribe to PR activity for this session: `subscribe_pr_activity` on `Blood-Dawn/life-manager#1`. Subscriptions don't carry over between sessions.
 
-## One Sourcery finding still open
+## Review findings: all resolved
 
-Comment thread (review comment id `4110912213`, on `src/components/finance/BudgetPanel.jsx`): mutation errors are silently swallowed across the Finance/Habits/House forms — a failed insert/update/delete just no-ops instead of telling the user.
-
-The fix pattern is already in the codebase: `src/components/ui/ErrorBanner.jsx`, wired into `src/pages/Dashboard.jsx` in commit `3c25b8e` (both a `loadError` state with retry, and an `actionError` state for mutations). Apply the same `actionError` pattern to:
-- `src/pages/Finance.jsx` (transaction add/edit/delete)
-- `src/pages/Habits.jsx` (habit add/edit/delete, check-off toggle)
-- `src/pages/House.jsx` (chore and shopping-item add/edit/delete/toggle/snooze)
-- `src/components/finance/BudgetPanel.jsx` (set limit, delete budget)
-
-After pushing that fix, reply on the review thread (comment id `4110912213`) confirming it, same as the other five replies already on the PR.
+No open review findings as of commit `9e963d9`. If a bot posts a new review round, check it same as before: verify the claim, fix genuine bugs, reply on the thread naming the fix commit.
 
 ## Still needs the human (not fixable from a session without dashboard access)
 
