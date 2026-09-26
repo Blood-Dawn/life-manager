@@ -31,7 +31,7 @@ A single web app for tracking personal finances, daily habits, and household cho
 5. Deploy, then open the live URL in a private window and walk through signup, login, and one CRUD action in each module
 
 ## Demo video
-[Watch the demo](https://www.loom.com/share/da29cbf3c0444418a97864e4a9fe4f47)
+[Watch the demo](https://youtu.be/x9s7ZAHvphM)
 
 ## Project structure
 - `src/pages` — Login, Signup, Dashboard, Finance, Habits, House
