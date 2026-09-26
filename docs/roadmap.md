@@ -85,6 +85,7 @@ create table chores (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
+  zone text,
   frequency text not null default 'one_time' check (frequency in ('one_time', 'daily', 'weekly', 'monthly')),
   due_date date,
   is_done boolean not null default false,
@@ -134,7 +135,11 @@ Route: `/finance`
 - Transaction list: newest first, each row shows date, category, description, and a signed amount (green for income, red for expense), with edit and delete actions.
 - Monthly summary above the list: total income, total expenses, and net for the selected month, computed client-side from the transactions already loaded.
 - Month filter: a dropdown or arrows to move between months.
-- Stretch: budgets. A small panel to set a monthly limit per category, with a progress bar showing spent versus limit.
+- Safe-to-spend number: one headline figure above the summary, income minus already-logged expenses for the selected month, so there's a single number to react to instead of scanning every category.
+- Quick-add autofill: when the description field matches a prior transaction, pre-fill that transaction's category and amount, cutting entry to a couple of taps for repeat expenses.
+- Stretch: budgets. A small panel to set a monthly limit per category, with a progress bar showing spent versus limit, and the row flagged when spent exceeds the limit.
+
+**Inspired by:** PocketGuard's "In My Pocket" single safe-to-spend figure and Mint's over-limit category alerts, both cited as retention drivers; behavioral-economics research on mental accounting explains why one number beats many category balances for everyday decisions; entry friction is repeatedly named as the top reason people abandon a budgeting app within days, hence the autofill. Sources: https://pocketguard.com/blog/pocketguard-vs-monarch-money/, https://mint.intuit.com/how-mint-works/alerts, https://www.behavioraleconomics.com/the-budgeting-app-trap-when-spending-information-backfires/, https://github.com/dmcgee2121/leftly/issues/64
 
 ## Feature Spec: Habits Module
 
@@ -143,16 +148,24 @@ Route: `/habits`
 - Add habit form: name and an optional emoji icon, defaulting to a check mark.
 - Habit list: one row per active habit, each with a checkbox for today. Checking it inserts a row into `habit_logs` for today, unchecking deletes that row.
 - Edit and delete on each habit, delete cascades its logs automatically through the foreign key.
-- Streak display next to each habit: count consecutive days with a log ending today or yesterday, shown as "5 day streak". Compute this client-side from the habit's logs, no stored counter needed.
+- Streak display next to each habit: count consecutive days with a log ending today or yesterday, shown as "5 day streak", tolerating one missed day before the streak resets rather than punishing it instantly. Compute this client-side from the habit's logs, no stored counter needed.
+- Best-streak record shown next to the current streak, e.g. "5 day streak · best 12", computed client-side as the longest run in the habit's log history.
+- A soft "you missed yesterday, check in today to keep going" nudge on a habit whose streak is at risk, rather than a shaming red badge.
 - Stretch: a 7-day heatmap strip per habit, seven small squares filled in if logged that day, in place of just a number.
+
+**Inspired by:** Loop Habit Tracker's habit-strength algorithm explicitly avoids all-or-nothing scoring so a single missed day doesn't erase a long streak; Streaks' tile grid is the direct model for the heatmap stretch item; James Clear's "missing once is an accident, missing twice is the start of a new habit" is the basis for the nudge instead of a punitive miss indicator. Sources: https://github.com/iSoron/uhabits/wiki/Habit-Strength, https://thesweetsetup.com/apps/best-habit-tracking-app-ios/, https://jamesclear.com/habit-stacking
 
 ## Feature Spec: House Module
 
 Route: `/house`
 
-- Chores tab: add chore (title, frequency, due date), list sorted by due date with overdue chores flagged in red, a checkbox marks it done, edit and delete on each.
+- Chores tab: add chore (title, zone, frequency, due date), list sorted by due date. A due-date color scale instead of a single overdue flag: green when not due soon, amber inside 1 day of the due date, red once overdue. A checkbox marks it done, edit and delete on each.
+- One-tap snooze button on each chore row that bumps the due date by a day (or by its frequency's interval) without opening the edit form, for clearing a pile-up fast.
+- Zone filter chips above the list (Kitchen, Bathroom, Bedroom, Common Areas, Outdoor, Other) to narrow focus to one area at a time instead of the whole house at once.
 - Shopping list tab: add item (name, quantity), checkbox marks purchased, a "clear purchased" button deletes every purchased row at once, edit and delete on each item.
 - If time gets tight, ship chores only and drop the shopping tab, per the scope note above. The route and page shell stay either way, only the second tab's content is cut.
+
+**Inspired by:** Tody's "dirtiness" scheduling (a gradient rather than a binary overdue flag) is scaled down here to a simple 3-color due-soon/overdue indicator; a 2026 comparison of ADHD-friendly chore apps found brittle streaks and shaming red badges lose users within three weeks, hence the softer color scale and the one-tap snooze over an edit-to-defer flow; FlyLady's zone-cleaning method (and its app port HomeRoutines) is the basis for the zone field and filter, narrowing focus to reduce overwhelm. Sources: https://todyapp.com/method, https://tidywell-app.com/blog/top-adhd-chore-apps-2026, https://organizingmoms.com/flylady-zones/
 
 ## UI Pages and Navigation
 
